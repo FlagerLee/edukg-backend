@@ -1,0 +1,9 @@
+fastapi==0.73.0
+uvicorn==0.15.0
+openpyxl==3.0.9
+lxml==4.4.1
+paddlepaddle==2.2.1
+paddleocr==2.3.0.2
+requests==2.26.0
+Pillow==8.4.0
+pybase64==1.2.1
