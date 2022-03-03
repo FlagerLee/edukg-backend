@@ -1,3 +1,4 @@
+from asyncio import exceptions
 from pydantic import BaseModel, validator
 from openpyxl import load_workbook
 from lxml import etree
@@ -26,19 +27,31 @@ class result(BaseModel):
         eid_year = int(res.group(1))
         if eid_year < 2013 or eid_year > datetime.now().year:
             raise ValueError('exam year out of range')
-        exam_path = '/'.join([json_root_path, eid_year + 'GaoKao', eid])
+        exam_path = '/'.join([json_root_path, str(eid_year) + 'GaoKao', eid])
         if not os.path.exists(exam_path):
             raise ValueError('exam id does not exist')
+        return eid
 
     @validator('question_id')
     def question_id_re(cls, qid):
         res = re.match(r'^(\d+)_(\d+)$', qid)
         if not res:
             raise ValueError('exam id value error')
+        return qid
 
     @validator('result')
     def result_re(cls, result):
-        json.load(result)
+        res = json.loads(result)
+        assert type(res) is dict
+        assert res.__contains__('ID')
+        assert res.__contains__('Subject')
+        assert res.__contains__('Grade')
+        assert res.__contains__('School')
+        assert res.__contains__('SourceLink')
+        assert res.__contains__('TestName')
+        assert res.__contains__('Content')
+        assert res.__contains__('Questions')
+        return res
 
 
 # 图片内容，使用Base64加密和解密。mood只能为'sentence'/'latex'，分别使用普通ocr和图片转latex进行
@@ -48,7 +61,8 @@ class ocr_img(BaseModel):
 
     @validator('mood')
     def mood_re(cls, mood):
-        pass
+        assert mood == 'sentence' or mood == 'latex'
+        return mood
 
 json_root_path = None
 html_root_path = None
@@ -198,7 +212,7 @@ def convert(img_md: ocr_img): # md: meta data
             new_img.close()
             hide_print = HiddenPrints()
             hide_print.close()
-            ocr = PaddleOCR(use_angle_cls=True, lang='en')
+            ocr = PaddleOCR(use_angle_cls=True, lang='ch')
             result = ocr.ocr(img_path, cls=True)
             hide_print.open()
             result_str = ''
@@ -212,13 +226,12 @@ def convert(img_md: ocr_img): # md: meta data
             img.close()
             hide_print = HiddenPrints()
             hide_print.close()
-            ocr = PaddleOCR(use_angle_cls=True, lang='en')
+            ocr = PaddleOCR(use_angle_cls=True, lang='ch')
             result = ocr.ocr(img_path, cls=True)
             hide_print.open()
             result_str = ''
             for line in result:
-                if float(line[1][1]) > 0.8:
-                    result_str += line[1][0]
+                result_str += line[1][0]
             return result_str
     else:
         img.close()
@@ -246,6 +259,7 @@ def convert(img_md: ocr_img): # md: meta data
         }
         Html = requests.post(url, headers=headers, json=data)
         res = json.loads(Html.text)
+        print(res)
         cnt = 0
         while res["latex"] == '':
             # print("cnt:", cnt)

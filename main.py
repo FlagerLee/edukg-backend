@@ -1,7 +1,21 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from utils import *
 
 app = FastAPI()
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    message = ""
+    for error in exc.errors():
+        message += '.'.join(error.get('loc')) + ':' + error.get('msg') + ';'
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=message
+    )
+
 
 prefix = ''
 
@@ -32,13 +46,13 @@ async def save(res: result):
         '/'.join([json_root_path, year + 'GaoKao', res.exam_id, res.question_id + '.json']),
         'w'
     ) as f:
-        f.write(res.result)
+        json.dump(res.result, f, ensure_ascii=False)
 
 
 # 图片转文字
 @app.post('/'.join([prefix, 'parser', 'ocr']))
 async def ocr(img_content: ocr_img):
-    pass
+    return convert(img_content)
 
 
 if __name__ == '__main__':
