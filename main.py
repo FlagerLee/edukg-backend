@@ -58,4 +58,4 @@ async def ocr(img_content: ocr_img):
 if __name__ == '__main__':
     import uvicorn
     load_cfg()
-    uvicorn.run('main:app', host='0.0.0.0', port=8888)
+    uvicorn.run('main:app', host='127.0.0.1', port=8002)
