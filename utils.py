@@ -196,7 +196,9 @@ class HiddenPrints:
 
 
 def download_img(url):
-    file_name = url.split('/')[-1]
+    if not os.path.exists('temp'):
+        os.mkdir('temp')
+    file_name = 'temp/%s' % url.split('/')[-1]
     res = requests.get(url)
     with open(file_name, 'wb') as f:
         f.write(res.content)
@@ -212,6 +214,8 @@ def remove_transparency(img_pil, bg_color=(255, 255, 255)):
         bg = Image.new('RGBA', img_pil.size, bg_color + (255,))
         bg.paste(img_pil, mask=alpha)
         return bg.convert('RGB')
+    elif img_pil.mode == 'P':
+        return img_pil.convert('RGB')
     else:
         return img_pil
 
@@ -247,6 +251,7 @@ def convert(img_md: ocr_img): # md: meta data
             ocr = PaddleOCR(use_angle_cls=True, lang='ch')
             result = ocr.ocr(img_path, cls=True)
             hide_print.open()
+            os.remove(img_path)
             result_str = ''
             for line in result:
                 result_str += line[1][0]
@@ -286,6 +291,7 @@ def convert(img_md: ocr_img): # md: meta data
             cnt += 1
             if cnt == 5:
                 break
+        os.remove(img_path)
         if res["latex"] != '':
             return res["latex"]
         else:
