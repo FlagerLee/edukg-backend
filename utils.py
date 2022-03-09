@@ -65,8 +65,10 @@ class ocr_img(BaseModel):
         return mood
 
 json_root_path = None
+img_root_path = None
 html_root_path = None
 excel_root_path = None
+img_dict = None
 
 
 def load_cfg():
@@ -77,6 +79,19 @@ def load_cfg():
             cfg_name = cfg_name.lower()
             if cfg_name in globals():
                 globals()[cfg_name] = cfg_path.strip('\n')
+    global img_dict, img_root_path
+    img_dict = {}
+    for dirs in os.listdir(img_root_path):
+        if dirs == '.DS_Store':
+            continue
+        year = dirs[:4]
+        id_map = {}
+        img_list_path = '%s/%s/image_list.txt' % (img_root_path, dirs)
+        with open(img_list_path, 'r') as f:
+            for line in f.readlines():
+                img_id, url = line.strip('\n').split(': ')
+                id_map[img_id.split('.')[0]] = url
+        img_dict[year] = id_map
 
 
 def scan_files():
@@ -129,18 +144,21 @@ def get_single_question(exam_id: str, question_id: str):
     answer_html_path = '/'.join([htmls_path, question_id + '_answer.html'])
     result_json_path = '/'.join([json_root_path, year + 'GaoKao', exam_id, question_id + '.json'])
     # then find all pictures in question html and answer html
-    img_list = []
-    parser = etree.HTMLParser(encoding='utf-8')
-    question_tree = etree.parse(question_html_path, parser=parser)
-    result_src = question_tree.xpath('//img/@src')
-    result_data_lazysrc = question_tree.xpath('//img/@data-lazysrc')
-    img_list.extend(result_src)
-    img_list.extend(result_data_lazysrc)
-    answer_tree = etree.parse(answer_html_path, parser=parser)
-    result_src = answer_tree.xpath('//img/@src')
-    result_data_lazysrc = answer_tree.xpath('//img/@data-lazysrc')
-    img_list.extend(result_src)
-    img_list.extend(result_data_lazysrc)
+    imgs = {}
+    with open(result_json_path, 'r') as f:
+        problem = json.load(f)
+    img_pattern = re.compile(r'<img>(.+?)</img>')
+    def get_img_id(match):
+        imgs[match.group(1)] = img_dict[year][match.group(1)]
+    for match in img_pattern.finditer(problem['Content']):
+        get_img_id(match)
+    for question in problem['Questions']:
+        for match in img_pattern.finditer(question['Question']):
+            get_img_id(match)
+        if question['Choices'] is not None:
+            for choice in question['Choices']:
+                for match in img_pattern.finditer(choice):
+                    get_img_id(match)
     def read_file(path):
         if not os.path.exists(path):
             return None
@@ -150,7 +168,7 @@ def get_single_question(exam_id: str, question_id: str):
         'problem_html': read_file(question_html_path),
         'answer_html': read_file(answer_html_path),
         'result': read_file(result_json_path),
-        'pics': img_list
+        'pics': imgs
     }
 
 
