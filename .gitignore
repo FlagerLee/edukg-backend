@@ -1,2 +1,7 @@
 __pycache__
 settings.cfg
+.DS_Store
+settings.cfg.example
+test*
+*test
+

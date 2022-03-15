@@ -64,6 +64,24 @@ class ocr_img(BaseModel):
         assert mood == 'sentence' or mood == 'latex'
         return mood
 
+
+class linking_req(BaseModel):
+    text: str
+    subject: str
+
+    @validator('subject')
+    def subject_re(cls, subject):
+        assert subject == 'biology' \
+            or subject == 'chemistry' \
+            or subject == 'chinese' \
+            or subject == 'english' \
+            or subject == 'geo' \
+            or subject == 'history' \
+            or subject == 'math' \
+            or subject == 'physics' \
+            or subject == 'politics'
+        return subject
+
 json_root_path = None
 img_root_path = None
 html_root_path = None

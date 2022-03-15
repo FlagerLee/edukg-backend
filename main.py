@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from utils import *
+from linking import process as linking_proc
 
 app = FastAPI()
 
@@ -53,6 +54,13 @@ async def save(res: result):
 @app.post('/'.join([prefix, 'parser', 'ocr']))
 async def ocr(img_content: ocr_img):
     return convert(img_content)
+
+
+@app.post('/'.join([prefix, 'linking']))
+async def linking(req: linking_req):
+    return {
+        'data': linking_proc(req.text, req.subject)
+    }
 
 
 if __name__ == '__main__':
