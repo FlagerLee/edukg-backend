@@ -56,7 +56,7 @@ async def ocr(img_content: ocr_img):
     return convert(img_content)
 
 
-@app.post('/'.join([prefix, 'linking']))
+@app.post('/'.join([prefix, 'parser', 'linking']))
 async def linking(req: linking_req):
     return {
         'data': linking_proc(req.text, req.subject)
