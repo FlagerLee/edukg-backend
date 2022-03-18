@@ -1,4 +1,3 @@
-from asyncio import exceptions
 from pydantic import BaseModel, validator
 from openpyxl import load_workbook
 from lxml import etree
@@ -163,25 +162,40 @@ def get_single_question(exam_id: str, question_id: str):
     result_json_path = '/'.join([json_root_path, year + 'GaoKao', exam_id, question_id + '.json'])
     # then find all pictures in question html and answer html
     imgs = {}
-    with open(result_json_path, 'r') as f:
-        problem = json.load(f)
-    img_pattern = re.compile(r'<img>(.+?)</img>')
-    def get_img_id(match):
-        imgs[match.group(1)] = img_dict[year][match.group(1)]
-    for match in img_pattern.finditer(problem['Content']):
-        get_img_id(match)
-    for question in problem['Questions']:
-        for match in img_pattern.finditer(question['Question']):
+    if not os.path.exists(result_json_path):
+        problem = None
+        img_list = filter(re.compile(question_id.replace('_', '-')).match, img_dict[year].keys())
+        print(img_list)
+        for img in img_list:
+            print(img)
+            imgs[img.split('.')[0]] = img_dict[year][img.split('.')[0]]
+    else:
+        with open(result_json_path, 'r') as f:
+            problem = json.load(f)
+        img_pattern = re.compile(r'<img>(.+?)</img>')
+        def get_img_id(match):
+            imgs[match.group(1)] = img_dict[year][match.group(1)]
+        for match in img_pattern.finditer(problem['Content']):
             get_img_id(match)
-        if question['Choices'] is not None:
-            for choice in question['Choices']:
-                for match in img_pattern.finditer(choice):
-                    get_img_id(match)
+        for question in problem['Questions']:
+            for match in img_pattern.finditer(question['Question']):
+                get_img_id(match)
+            if question['Choices'] is not None:
+                for choice in question['Choices']:
+                    for match in img_pattern.finditer(choice):
+                        get_img_id(match)
     def read_file(path):
         if not os.path.exists(path):
             return None
         with open(path, 'r') as f:
             return ''.join(f.readlines())
+    if problem is None:
+        return {
+            'problem_html': read_file(question_html_path),
+            'answer_html': read_file(answer_html_path),
+            'result': None,
+            'pics': imgs
+        }
     return {
         'problem_html': read_file(question_html_path),
         'answer_html': read_file(answer_html_path),
