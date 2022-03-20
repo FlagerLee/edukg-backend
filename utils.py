@@ -175,15 +175,17 @@ def get_single_question(exam_id: str, question_id: str):
         img_pattern = re.compile(r'<img>(.+?)</img>')
         def get_img_id(match):
             imgs[match.group(1)] = img_dict[year][match.group(1)]
-        for match in img_pattern.finditer(problem['Content']):
-            get_img_id(match)
-        for question in problem['Questions']:
-            for match in img_pattern.finditer(question['Question']):
+        if problem['Content'] is not None:
+            for match in img_pattern.finditer(problem['Content']):
                 get_img_id(match)
-            if question['Choices'] is not None:
-                for choice in question['Choices']:
-                    for match in img_pattern.finditer(choice):
-                        get_img_id(match)
+        for question in problem['Questions']:
+            if question['Question'] is not None:
+                for match in img_pattern.finditer(question['Question']):
+                    get_img_id(match)
+                if question['Choices'] is not None:
+                    for choice in question['Choices']:
+                        for match in img_pattern.finditer(choice):
+                            get_img_id(match)
     def read_file(path):
         if not os.path.exists(path):
             return None
